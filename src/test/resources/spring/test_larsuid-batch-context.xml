@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-beans-3.2.xsd">
+
+ 	<!-- Error-file map loading -->
+    <util:properties id="errorProperties" location="classpath:config/lar_error_code.properties"/>
+
+
+	<!-- Properties configuration for Run Delivery Timeout Batch Job -->
+	<bean id="larsuid_job_properties_placeholder"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		lazy-init="false">
+		<property name="location"
+			value="classpath:config/test-application.properties" />
+		<property name="placeholderPrefix" value="$larsuid_batch_job{" />
+		<property name="placeholderSuffix" value="}" />
+	</bean>
+
+	<!-- this bean should auto load -->
+     <bean class="org.springframework.batch.test.JobLauncherTestUtils" />
+
+	<!-- Import Resources -->
+	
+	<import resource="classpath:spring/lars-job-infra-context.xml" />
+	<import resource="classpath:spring/jobs/job-larsuid-common-context.xml" />	
+	<import resource="classpath:/spring/lar_registration_service_biz-context.xml" />
+    <!-- <import resource="classpath:/spring/lar_error_code_configurator.xml"/> -->
+	<import resource="classpath:/spring/test-larsuid-batch-db-context.xml" />
+</beans>

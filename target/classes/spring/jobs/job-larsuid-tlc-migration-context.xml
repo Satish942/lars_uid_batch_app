@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+	
+	<job id="jobLarsUidTlcMigration"  xmlns="http://www.springframework.org/schema/batch" job-repository="jobRepositoryLarsUid">
+		<step id="stepProcessLarsUidTlcMigration">
+			<tasklet >
+				<chunk reader="larsuidBatchReader" writer="larsuidTlcMigrationEotWriter"
+					processor="larsuidTlcMigrationItemProcessor" commit-interval="2">
+					<batch:listeners>
+						<batch:listener ref="larTlcMigrationReaderListner"/>
+						<batch:listener ref="larsuidTlcMigrationProcessorListener"/>
+						<batch:listener ref="larTlcMigrationCtlHeaderFooterListner"/>
+						<batch:listener ref="larTlcMigrationFailedHeaderFooterListner"/>
+					</batch:listeners>
+					<batch:streams>
+						<batch:stream ref="larsuidTlcMigrationFailedWriter"/>
+						<batch:stream ref="larsuidTlcMigrationCtlWriter"/>
+					</batch:streams>
+				</chunk>
+			</tasklet>
+			<next on="COMPLETED" to="larsUidTlcMigrationCountIncrmtStep" />
+			<next on="FAILED" to="larsUidTlcMigrationVerifyFailedStep" />
+			<next on="NO RESPONSE" to="larsUidTlcMigrationDeleteFileStep" />
+			<end on="NO RECORDS"/>
+		</step>			
+		<step id="larsUidTlcMigrationCountIncrmtStep" next="larsUidTlcMigrationArchievalStep">
+			<tasklet ref="larsUidTlcMigrationCountIncrmtTasklet" />
+		</step>		
+		<step id="larsUidTlcMigrationArchievalStep">
+			<tasklet ref="larsUidArchieverTasklet" />
+		</step> 
+		<step id="larsUidTlcMigrationVerifyFailedStep">
+			<tasklet ref="larsUidVerifyFailedTasklet" />
+		</step> 		
+		<step id="larsUidTlcMigrationDeleteFileStep">
+			<tasklet ref="larsUidDeleteFileTasklet" />
+		</step> 
+	</job>
+	
+
+	<!-- Processor part  -->
+	<bean id="larsuidTlcMigrationItemProcessor"
+		class="au.com.optus.batch.larsuid.processor.TlcMigrationItemProcessor"  scope="step">
+		<property name="incomingFileDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}" />
+		<property name="fileDelimeter" value="$larsuid_batch_job{job.file.delimeter}" />
+	</bean>
+
+	<bean id="larTlcMigrationReaderListner"
+		class="au.com.optus.batch.larsuid.listener.TlcMigrationReaderHandler" scope="step">
+		<property name="incomingDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}" />
+	</bean>
+
+	<bean id="larsuidTlcMigrationProcessorListener"
+		class="au.com.optus.batch.larsuid.listener.TlcMigrationProcessingHandler"
+		scope="step">
+		<property name="resFileGenerator" ref="larsResponseFileNameGenerator" />
+		<property name="failedFileWriter" ref="larsuidTlcMigrationFailedWriter"></property>
+		<property name="ctlFileWriter" ref="larsuidTlcMigrationCtlWriter"></property>
+	</bean>
+	
+	<bean id="larsuidTlcMigrationFailedWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.failed}#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).TLC_MIGRATION_FILE.toString())}" />
+		<property name="headerCallback" ref="larTlcMigrationFailedHeaderFooterListner"/>
+		<property name="footerCallback" ref="larTlcMigrationFailedHeaderFooterListner"/>
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{response.tlc.migration.rejected.file.tokens}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larTlcMigrationFailedHeaderFooterListner"
+		class="au.com.optus.batch.larsuid.listener.LarHeaderFooterListner">
+		<property name="filename" value="#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).TLC_MIGRATION_FILE.toString())}" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}" />
+		<property name="recCountKey" value="#{T(au.com.optus.batch.larsuid.util.BatchUtil).TLC_MIGRATION_FAILED_COUNT_KEY}" />
+	</bean>
+	
+	<bean id="larsuidTlcMigrationCtlWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.CTL" />
+		<property name="headerCallback" ref="larTlcMigrationCtlHeaderFooterListner"/>
+		<property name="footerCallback" ref="larTlcMigrationCtlHeaderFooterListner"/>
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{input.customer.ctl.file}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larTlcMigrationCtlHeaderFooterListner"
+		class="au.com.optus.batch.larsuid.listener.LarHeaderFooterListner">
+		<property name="filename" value="#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.CTL" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}" />
+		<property name="recCountKey" value="#{T(au.com.optus.batch.larsuid.util.BatchUtil).TLC_MIGRATION_CTL_COUNT_KEY}" />
+	</bean>
+	
+	<bean id="larsuidTlcMigrationEotWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.EOT" />
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larsUidTlcMigrationCountIncrmtTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileSeqIncrementTasklet">
+		<property name="controlType" value="#{T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString()}"></property>
+	</bean>
+
+</beans>

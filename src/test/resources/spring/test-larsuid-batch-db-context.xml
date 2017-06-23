@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.5.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd"
+	default-lazy-init="true">
+
+	<import resource="classpath:/spring/mcas-core-db-jpa-context.xml" />
+	<import resource="classpath:/spring/mcas-core-context.xml" />
+
+	<!-- ENABLES ANNOTATIONS -->
+	<context:annotation-config />
+	<context:component-scan
+		base-package="au.com.optus.mcas.sdp.bizservice.larsuid.batch,
+		au.com.optus.mcas.sdp.bizservice.lar.registration,
+		au.com.singtel.group.bizservice.larsuid,
+		au.com.optus.mcas.sdp.bizservice.larsuid,au.com.optus.batch.larsuid.processor,
+		au.com.optus.batch.larsuid.error" />
+
+	<util:list id="core-packagesToScan">
+		<value>au.com.optus.mcas.sdp.bizservice.larsuid.batch.domain.model</value>
+        <value>au.com.optus.mcas.sdp.bizservice.larsuid.domain.model</value>
+        <value>au.com.optus.mcas.sdp.bizservice.lar.registration.domain.model</value>
+	</util:list>
+
+	<!-- Use in-memory HSQLDB database for testing purposes -->
+	<!-- <bean id="core-dataSource" class="org.apache.commons.dbcp.BasicDataSource" 
+		destroy-method="close"> <property name="driverClassName" value="org.hsqldb.jdbcDriver"/> 
+		<property name="url" value="jdbc:hsqldb:mem:testdb"/> <property name="username" 
+		value="sa"/> <property name="password" value=""/> </bean> -->
+	<bean id="core-dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url"
+			value="jdbc:oracle:thin:@10.127.67.36:1521:customerdb" />
+		<property name="username" value="op_shop" />
+		<property name="password" value="op_shop" />
+	</bean>
+
+	<bean id="core-hibernateProperties"
+		class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="properties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</prop>
+				<prop key="hibernate.order_updates">true</prop>
+				<prop key="hibernate.jdbc.batch_versioned_data">false</prop>
+				<prop key="hibernate.jdbc.batch_size">16</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.use_sql_comments">true</prop>
+				<prop key="hibernate.generate_statistics">false</prop>
+
+				<prop key="hibernate.cache.use_second_level_cache">false</prop>
+				<prop key="hibernate.cache.use_query_cache">false</prop>
+
+			</props>
+		</property>
+	</bean>
+
+	<bean id="hsqlDataTypeFactory" class="org.dbunit.ext.hsqldb.HsqldbDataTypeFactory" />
+</beans>

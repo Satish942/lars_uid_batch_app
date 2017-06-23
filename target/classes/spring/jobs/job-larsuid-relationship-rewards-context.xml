@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+	
+	<job id="jobLarsUidRelRwdRec"  xmlns="http://www.springframework.org/schema/batch" job-repository="jobRepositoryLarsUid">
+		<step id="stepProcessLarsUidRelRwdRec">
+			<tasklet >
+				<chunk reader="larsuidBatchReader" writer="larsuidRelRwdRecEotWriter"
+					processor="larsuidRelRwdRecItemProcessor" commit-interval="2">
+					<batch:listeners>
+						<batch:listener ref="larRelRecReaderListner"/>
+						<batch:listener ref="larsuidRelRwdRecListener"/>
+						<batch:listener ref="larRelRecCtlHeaderFooterListner"/>
+						<batch:listener ref="larRelRecSuccessHeaderFooterListner"/>
+						<batch:listener ref="larRelRecFailedHeaderFooterListner"/>
+					</batch:listeners>
+					<batch:streams>
+						<batch:stream ref="larsuidRelRwdRecSucessFulWriter"/>
+						<batch:stream ref="larsuidRelRwdRecFailedWriter"/>
+						<batch:stream ref="larsuidRelRwdRecCtlWriter"/>
+					</batch:streams>
+				</chunk>
+			</tasklet>
+			<next on="COMPLETED" to="larsUidRelRwdRecCountIncrmtStep" />
+			<next on="FAILED" to="larsUidRelRwdRecVerifyFailedStep" />
+			<next on="NO RESPONSE" to="larsUidRelRwdRecDeleteFileStep" />
+			<end on="NO RECORDS"/>
+		</step>			
+		<step id="larsUidRelRwdRecCountIncrmtStep" next="larsUidRelRwdRecDbCleanupStep">
+			<tasklet ref="larsUidRelRwdRecCountIncrmtTasklet" />
+		</step>		
+		<step id="larsUidRelRwdRecDbCleanupStep" next="larsUidRelRwdRecArchievalStep">
+			<tasklet ref="larsUidRelRwdRecDBCleanupTasklet" />
+		</step>	
+		<step id="larsUidRelRwdRecArchievalStep">
+			<tasklet ref="larsUidArchieverTasklet" />
+		</step> 
+		<step id="larsUidRelRwdRecVerifyFailedStep">
+			<tasklet ref="larsUidVerifyFailedTasklet" />
+		</step> 		
+		<step id="larsUidRelRwdRecDeleteFileStep">
+			<tasklet ref="larsUidDeleteFileTasklet" />
+		</step> 
+	</job>
+
+	<!-- Processor part  -->
+	<bean id="larsuidRelRwdRecItemProcessor"
+		class="au.com.optus.batch.larsuid.processor.RelationshipRewardsItemProcessor"  scope="step">
+		<property name="dateFormat" value="$larsuid_batch_job{job.file.dateformat}" />
+		<property name="incomingFileDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}" />
+		<property name="fileDelimeter" value="$larsuid_batch_job{job.file.delimeter}" />
+	</bean>
+
+	<bean id="larRelRecReaderListner"
+		class="au.com.optus.batch.larsuid.listener.ItemReaderHandler" scope="step">
+		<property name="incomingDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}" />
+	</bean>
+
+	<bean id="larsuidRelRwdRecListener"
+		class="au.com.optus.batch.larsuid.listener.ItemProcessingHandler"
+		scope="step">
+		<property name="dateFormat" value="$larsuid_batch_job{job.file.dateformat}" />
+		<property name="resFileGenerator" ref="larsResponseFileNameGenerator" />
+		<property name="successFileWriter" ref="larsuidRelRwdRecSucessFulWriter"></property>
+		<property name="failedFileWriter" ref="larsuidRelRwdRecFailedWriter"></property>
+		<property name="ctlFileWriter" ref="larsuidRelRwdRecCtlWriter"></property>
+	</bean>
+	
+	<bean id="larsuidRelRwdRecSucessFulWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).SERVICE_FILE.toString())}" />
+		<property name="headerCallback" ref="larRelRecSuccessHeaderFooterListner"/>
+		<property name="footerCallback" ref="larRelRecSuccessHeaderFooterListner"/>
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{response.relationship.rewards.success.file.tokens}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larRelRecSuccessHeaderFooterListner"
+		class="au.com.optus.batch.larsuid.listener.LarHeaderFooterListner">
+		<property name="filename" value="#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).SERVICE_FILE.toString())}" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}" />
+		<property name="recCountKey" value="#{T(au.com.optus.batch.larsuid.util.BatchUtil).DAILY_SUCCESS_COUNT_KEY}" />
+	</bean>
+	
+	<bean id="larsuidRelRwdRecFailedWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).ERROR_RESPONSE_FILE.toString())}" />
+		<property name="headerCallback" ref="larRelRecFailedHeaderFooterListner"/>
+		<property name="footerCallback" ref="larRelRecFailedHeaderFooterListner"/>
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{response.relationship.rewards.rejected.file.tokens}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larRelRecFailedHeaderFooterListner"
+		class="au.com.optus.batch.larsuid.listener.LarHeaderFooterListner">
+		<property name="filename" value="#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).ERROR_RESPONSE_FILE.toString())}" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}" />
+		<property name="recCountKey" value="#{T(au.com.optus.batch.larsuid.util.BatchUtil).DAILY_FAILED_COUNT_KEY}" />
+	</bean>
+	
+	<bean id="larsuidRelRwdRecCtlWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.CTL" />
+		<property name="headerCallback" ref="larRelRecCtlHeaderFooterListner"/>
+		<property name="footerCallback" ref="larRelRecCtlHeaderFooterListner"/>
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{input.customer.ctl.file}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larRelRecCtlHeaderFooterListner"
+		class="au.com.optus.batch.larsuid.listener.LarHeaderFooterListner">
+		<property name="filename" value="#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.CTL" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}" />
+		<property name="recCountKey" value="#{T(au.com.optus.batch.larsuid.util.BatchUtil).DAILY_CTL_COUNT_KEY}" />
+	</bean>
+	
+	<bean id="larsuidRelRwdRecEotWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.outgoing}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString())}.EOT" />
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="larsUidRelRwdRecDBCleanupTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.RelationshipDbCleanupTasklet">
+	</bean>
+	
+	<bean id="larsUidRelRwdRecCountIncrmtTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileSeqIncrementTasklet">
+		<property name="controlType" value="#{T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).DAILY_SRV_LIST.toString()}"></property>
+	</bean>
+
+</beans>

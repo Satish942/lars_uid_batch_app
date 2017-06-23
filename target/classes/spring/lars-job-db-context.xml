@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- <bean id="dataSourceLarsUid" class="org.springframework.jndi.JndiObjectFactoryBean"
+        lazy-init="true">
+        <property name="jndiName">
+            <value>$larsuid_batch_job{job.database.jndi}</value>
+        </property>
+    </bean>
+
+    <bean id="dataSourceBatch" class="org.springframework.jndi.JndiObjectFactoryBean"
+        lazy-init="true">
+        <property name="jndiName">
+            <value>$larsuid_batch_job{job.springbatch.jndi}</value>
+        </property>
+    </bean>
+
+    <bean id="transactionManagerLarsUid" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+        <property name="dataSource" ref="dataSourceLarsUid"></property>
+    </bean>
+
+    <bean id="transactionManagerLarsUidBatch" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+        <property name="dataSource" ref="dataSourceBatch"></property>
+    </bean> -->
+    
+    
+    <context:property-placeholder location="classpath:lars_uid_batch_app/jdbc.properties" />
+
+    <!-- Connection Pool -->
+    <bean id="core-dataSource"
+        class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="${jdbc.driverClass}" />
+        <property name="url" value="${jdbc.url}" />
+        <property name="username" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+    </bean>
+    
+    <bean id="transactionManagerLarsUid" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+        <property name="dataSource" ref="core-dataSource"></property>
+    </bean>
+    
+    <bean id="core-hibernateProperties"
+        class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="properties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</prop>
+                <prop key="hibernate.order_updates">true</prop>
+                <prop key="hibernate.jdbc.batch_versioned_data">false</prop>
+                <prop key="hibernate.jdbc.batch_size">16</prop>
+                <prop key="hibernate.hbm2ddl.auto">create</prop>
+
+                <prop key="hibernate.show_sql">true</prop>
+                <prop key="hibernate.format_sql">true</prop>
+                <prop key="hibernate.use_sql_comments">true</prop>
+                <prop key="hibernate.generate_statistics">false</prop>
+
+                <prop key="hibernate.cache.use_second_level_cache">false</prop>
+                <prop key="hibernate.cache.use_query_cache">false</prop>
+
+            </props>
+        </property>
+    </bean>
+
+</beans>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- Property Configuration -->
+	<context:property-placeholder location="classpath:lars_uid_batch_app/application.properties"/>
+
+	<!-- Properties configuration for Run Delivery Timeout Batch Job -->
+	<bean id="larsuid_job_properties_placeholder"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		lazy-init="false">
+		<property name="location"
+			value="classpath:lars_uid_batch_app/application.properties" />
+		<property name="placeholderPrefix" value="$larsuid_batch_job{" />
+		<property name="placeholderSuffix" value="}" />
+	</bean>
+	<util:properties id="larsuid_batch_job_properties" location="classpath:lars_uid_batch_app/application.properties" />
+	
+	
+    <!-- Import Resources -->
+    <import resource="classpath:/spring/mcas-core-db-jpa-context.xml" />
+    <import resource="classpath:/spring/mcas-core-context.xml" />
+    <import resource="classpath:/spring/larsuid-batch-dao-context.xml" />
+    <import resource="classpath:/spring/larsuid_service_biz-context.xml" />
+    <import resource="classpath:/spring/lar_registration_service_biz-context.xml" />
+    <!-- <import resource="classpath:/spring/lar_error_code_configurator.xml"/> -->
+	
+	<!-- <import resource="./lars-job-db-context.xml" />	 -->
+	<import resource="./lars-job-infra-context.xml" />
+	<import resource="./jobs/job-larsuid-common-context.xml" />
+	
+	<import resource="./jobs/job-initial-load.xml" />
+	<import resource="./jobs/job-larsuid-relationship-rewards-context.xml" />
+	<import resource="./jobs/job-larsuid-market-rewards-context.xml" />
+	<import resource="./jobs/job-larsuid-tlc-migration-context.xml" />
+		
+	<util:list id="core-packagesToScan">
+        <value>au.com.optus.mcas.sdp.bizservice.larsuid.batch.domain.model</value>
+        <value>au.com.optus.mcas.sdp.bizservice.larsuid.domain.model</value>
+        <value>au.com.optus.mcas.sdp.bizservice.lar.registration.domain.model</value>
+    </util:list>
+	
+</beans>

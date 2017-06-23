@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+	
+	<!-- Reader part  -->
+	<bean id="larsuidBatchReader"
+		class="org.springframework.batch.item.file.MultiResourceItemReader" scope="step">
+		<property name="resources"
+			value="file:$larsuid_batch_job{job.folder.lars.incoming}*.CTL" />
+		<property name="delegate" ref="larsuidBatchFlatFileReader" />
+	</bean>
+	
+	<bean id="larsuidBatchFlatFileReader" class="org.springframework.batch.item.file.FlatFileItemReader"  scope="step">
+		<property name="lineMapper" ref="larsuidBatchPrefixMatchingLineMapper" />
+	</bean>
+	
+	<bean id="larsuidBatchPrefixMatchingLineMapper"
+		class="org.springframework.batch.item.file.mapping.PatternMatchingCompositeLineMapper"  scope="step">
+		<property name="tokenizers">
+			<map>
+				<entry key="HEADER|*" value-ref="larsuidBatchtokenizer" />
+				<entry key="SVCUGN|*" value-ref="larsuidBatchtokenizer" />
+				<entry key="TRAILER|*" value-ref="larsuidBatchtokenizer" />
+			</map>
+		</property>
+		<property name="fieldSetMappers">
+			<map>
+				<entry key="HEADER|*" value-ref="larsuidBatchMapper" />
+				<entry key="SVCUGN|*" value-ref="larsuidBatchMapper" />
+				<entry key="TRAILER|*" value-ref="larsuidBatchMapper" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="larsuidBatchtokenizer"
+		class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"  scope="step">
+		<property name="names" value="$larsuid_batch_job{input.customer.ctl.file}" />
+		<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"/>
+	</bean>
+	
+	<bean id="larsuidBatchMapper" class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper" scope="step">
+		<property name="prototypeBeanName" value="ctlFileInfo" />
+	</bean>
+		
+	<bean id="ctlFileInfo" class="au.com.optus.batch.larsuid.bean.ControlFileInfo" scope="prototype"></bean>
+	
+	<bean id="larsResponseFileNameGenerator"
+		class="au.com.optus.batch.larsuid.util.ResponseFileNameGenerator">
+		<property name="dateFormatInFileName" value="$larsuid_batch_job{job.file.name.dateformat}"></property>
+	</bean>
+	
+	<bean id="larsUidArchieverTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileArchivingTasklet" scope="step">
+		<property name="sourceDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}"></property>
+		<property name="archiveDirectory" value="$larsuid_batch_job{job.folder.lars.processed}"></property>
+	</bean>
+	
+	<bean id="larsUidVerifyFailedTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileArchivingTasklet" scope="step">
+		<property name="sourceDirectory" value="$larsuid_batch_job{job.folder.lars.incoming}"></property>
+		<property name="archiveDirectory" value="$larsuid_batch_job{job.folder.lars.failed}"></property>
+	</bean>
+	
+	<bean id="larsUidDeleteFileTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileDeletingTasklet" scope="step">
+		<property name="outgoingDirectory" value="$larsuid_batch_job{job.folder.lars.outgoing}"></property>
+	</bean>
+	
+</beans>

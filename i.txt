@@ -1,0 +1,45 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for au.com.optus.mcas:lars_uid_batch_app:jar:0.0.1-SNAPSHOT
+[WARNING] 'dependencies.dependency.(groupId:artifactId:type:classifier)' must be unique: org.hsqldb:hsqldb:jar -> version 1.8.0.10 vs (?) @ line 195, column 15
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building lars_uid_batch_app 0.0.1-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ lars_uid_batch_app ---
+[INFO] Deleting /home/optus/git/lars_uid_batch_app/target
+[INFO] 
+[INFO] --- maven-antrun-plugin:1.7:run (set-tstamp) @ lars_uid_batch_app ---
+[INFO] Executing tasks
+
+main:
+[INFO] Executed tasks
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ lars_uid_batch_app ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 11 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:2.4:compile (default-compile) @ lars_uid_batch_app ---
+[INFO] Compiling 41 source files to /home/optus/git/lars_uid_batch_app/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ lars_uid_batch_app ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 4 resources to lars_uid_batch_app/0.0.1-SNAPSHOT
+[INFO] Copying 9 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:2.4:testCompile (default-testCompile) @ lars_uid_batch_app ---
+[INFO] Compiling 4 source files to /home/optus/git/lars_uid_batch_app/target/test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.12.2:test (default-test) @ lars_uid_batch_app ---
+[INFO] Surefire report directory: /home/optus/git/lars_uid_batch_app/target/surefire-reports
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running au.com.optus.batch.larsuid.batch.IntialLoadBatchTest

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="maven-antrun-" default="main"  >
+<target name="main">
+  <tstamp>
+    <format pattern="yyyy-MM-dd hh:mm:ss" property="last.updated"/>
+  </tstamp>
+  <echo message="build.time=${last.updated}" file="filter.properties"/>
+</target>
+</project>

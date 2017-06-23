@@ -1,0 +1,245 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<parent>
+		<artifactId>super_pom</artifactId>
+		<groupId>au.com.optus.mcas</groupId>
+		<version>1.1.2</version>
+	</parent>
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>lars_uid_batch_app</artifactId>
+	<packaging>jar</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>lars_uid_batch_app</name>
+
+	<properties>
+		<spring.batch.version>3.0.3.RELEASE</spring.batch.version>
+		<mockito.version>1.9.5</mockito.version>
+		<hibernate.validator.version>4.3.0.Final</hibernate.validator.version>
+		<laruid.batch.dao.version>0.0.1-SNAPSHOT</laruid.batch.dao.version>
+	</properties>
+
+	<build>
+		<resources>
+			<resource>
+				<filtering>true</filtering>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>config/**</exclude>
+				</excludes>
+			</resource>
+		</resources>
+
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-artifacts</id>
+						<phase>package</phase>
+						<goals>
+							<goal>attach-artifact</goal>
+						</goals>
+						<configuration>
+							<artifacts>
+								<artifact>
+									<file>./src/main/resources/config/application.properties</file>
+									<type>tmpl</type>
+									<classifier>application-properties</classifier>
+								</artifact>
+								<artifact>
+									<file>./src/main/resources/config/log4j.xml</file>
+									<type>tmpl</type>
+									<classifier>log4j-xml</classifier>
+								</artifact>
+							</artifacts>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+					<suppressionsLocation>file://${basedir}/src/main/resources/config/checkstyle-suppressions.xml</suppressionsLocation>
+					<propertyExpansion>checkstyle.suppressions.file=${project.build.directory}/checkstyle-suppressions.xml</propertyExpansion>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>au.com.optus.mcas</groupId>
+			<artifactId>mcas_core</artifactId>
+			<version>1.1.3</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>commons-beanutils</artifactId>
+					<groupId>commons-beanutils</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-digester</artifactId>
+					<groupId>commons-digester</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>au.com.optus.mcas.sdp.bizservice.larsuid.batch</groupId>
+			<artifactId>lars_uid_batch_dao</artifactId>
+			<version>${laruid.batch.dao.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>1.8.0.10</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.dbunit</groupId>
+			<artifactId>dbunit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>net.sf.dozer</groupId>
+			<artifactId>dozer</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-core</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>xml-apis</artifactId>
+					<groupId>xml-apis</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jboss-logging</artifactId>
+					<groupId>org.jboss.logging</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-orm</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aop</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-core</artifactId>
+			<version>${spring.batch.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-infrastructure</artifactId>
+			<version>${spring.batch.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-test</artifactId>
+			<version>${spring.batch.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>${mockito.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>${hibernate.validator.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>au.com.optus.mcas.sdp.bizservice.larsuid</groupId>
+			<artifactId>lars_uid_biz</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc14</artifactId>
+			<version>10.2.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-dbcp</groupId>
+			<artifactId>commons-dbcp</artifactId>
+			<version>1.4</version>
+		</dependency>
+        <dependency>
+            <groupId>au.com.optus.larregistration.biz</groupId>
+            <artifactId>lar_registration_biz</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+       <!--  <dependency>
+            <groupId>au.com.singtel.group.sdp.core</groupId>
+            <artifactId>lars_error_code_configurator</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency> -->
+
+	</dependencies>
+
+	<distributionManagement>
+		<repository>
+			<id>server-id-internal-repo-libs-releases</id>
+			<url>http://@z2artifactory.zdev.optusnet.com.au:8081/artifactory/libs-releases-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>server-id-internal-repo-libs-snapshots</id>
+			<url>http://@z2artifactory.zdev.optusnet.com.au:8081/artifactory/libs-snapshots-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+</project>

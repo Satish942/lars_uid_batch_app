@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!--
+      Disable the alleged bug in OrderLockPk: 'Equals method should not assume anything about the type of its argument'
+      Justification: The method *does* perform a class type check by calling ClassUtils.isAssignableValue(..)
+    -->
+
+</FindBugsFilter>

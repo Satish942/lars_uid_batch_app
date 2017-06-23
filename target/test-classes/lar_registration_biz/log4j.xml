@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                value="%-5p [%d\{ISO8601\}] [%t] [%L] %C\{1\}: %m%n" />
+        </layout>
+    </appender>
+
+    <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="/var/log/weblogic/apps/lar_registration_service.log"/>
+        <param name="MaxFileSize" value="10MB"/>
+        <param name="MaxBackupIndex" value="0"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d\{ISO8601\}: %p [%t] %C\{1\} %X\{ProcessId\}: %m%n"/>
+        </layout>
+    </appender>
+
+    <logger name="au.com.optus">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="org.apache">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.dozer">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.springframework">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="org.springframework.jms">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.hibernate">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.hibernate.SQL">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="org.hibernate.type">
+        <level value="INFO" />
+    </logger>
+
+    <root>
+        <level value="INFO" />
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</log4j:configuration>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+
+
+	<job id="jobLarsMarketRewardsUidRelRwdRec" xmlns="http://www.springframework.org/schema/batch" job-repository="jobRepositoryLarsUid">
+		<step id="stepMarketingRewardProcessLarsUid" next="stepMarketRewardProcessingTasklet">
+			<tasklet>
+				<chunk reader="databaseReaderMarketingReward" writer="writerFlatFileMarketingReward"
+					commit-interval="1">	
+					<batch:streams>
+						<batch:stream ref="marketRewardCompositeResWriter"/>
+					</batch:streams>	 		
+				</chunk>
+				 	<batch:listeners>
+						<batch:listener ref="marketRewardsHeaderFooterListener" />
+					</batch:listeners>					
+			</tasklet>
+		</step>	
+		
+		<step id="stepMarketRewardProcessingTasklet" next="stepMarketRewardNextJob">
+			<tasklet ref="marketRewardItemProcessingTasklet" />
+		</step>
+		<step id="stepMarketRewardNextJob" next="marketRewardCountIncrmtStep">
+			<tasklet ref="marketRewardDeleteTasklet" />
+		</step>
+		<step id="marketRewardCountIncrmtStep">
+			<tasklet ref="marketRewardIncrmtTasklet" />
+		</step>		
+			
+	</job>
+	
+	<bean id="databaseReaderMarketingReward" class="org.springframework.batch.item.database.JdbcCursorItemReader" scope="step">
+		<property name="dataSource" ref="core-dataSource" />
+		<property name="sql" value="select LAR_UID as uniqueId,SERVICE_ID as serviceNumber,LPD_FIRST_NAME as lpdfirstName,LPD_LAST_NAME as lpdlastName,LPD_EMAIL as lpdemailAddress,LPD_DOB as lpdbirthDate,LPD_BUSINESS_NAME as lpdbusName,LPD_INDUSTRY as lpdindustryname,LPD_NUMBER_OF_EMPLOYEES as lpdemployeeCount,LPD_ADDRESS as lpdaddressText,LPD_ADDRESS_STATE as lpdaddressStateCode,LPD_ADDRESS_POSTCODE as lpdaddressPostCode,LPD_LIFESTYLE_INTERESTS as lpdlifestyleInterests,LPD_REWARDS_PREFERRENCES as lpdrewardPrefText,LPD_MOVIE_VIEWING_PREFERRENCES as lpdmovieViewPref,LPD_MOVIE_GENRE_PREFERRENCES as lpdmovieGenrePref,LPD_SUBSCRIBED_TO as lpdSubscriptionCount,LPD_CHILDREN_AGE as lpdchildage,LPD_INFORMATION_COLLECTED_DATE as lpdinfoCollectionDate from LAR_LIFESTYLE_PROFILE_DETAILS" />
+		<property name="rowMapper">
+			<bean class="au.com.optus.batch.larsuid.bean.MarketRewardsRowMapper">
+			<property name="dateFormat" value="$larsuid_batch_job{job.file.dateformat}" />
+			</bean>
+		</property>
+	</bean>
+	   
+     <bean id="writerFlatFileMarketingReward" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.response}#{larsResponseFileNameGenerator.getDataFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).MARK_PR_EXTRACT.toString(), T(au.com.optus.batch.larsuid.util.BATCH_TYPE).MARKETING_FILE.toString())}" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="$larsuid_batch_job{response.market.rewards.success.file.tokens}" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="headerCallback" ref="marketRewardsHeaderFooterListener" />			
+		<property name="footerCallback" ref="marketRewardsHeaderFooterListener" />	 	
+	    </bean>
+	
+	 <bean id="marketRewardCtlWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.response}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).MARK_PR_EXTRACT.toString())}.CTL" />
+			<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="headerCallback" ref="ctlsHeaderFooterListener" />			
+		<property name="footerCallback" ref="ctlsHeaderFooterListener" />
+	</bean>
+	
+	<bean id="marketRewardEotWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource"
+			value="file:$larsuid_batch_job{job.folder.lars.response}#{larsResponseFileNameGenerator.getCtlFileName(T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).MARK_PR_EXTRACT.toString())}.EOT" />
+		<property name="lineAggregator">
+			<bean
+				class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+				<property name="delimiter" value="$larsuid_batch_job{job.file.delimeter}"></property>
+				<property name="fieldExtractor">
+					<bean
+						class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<property name="names" value="" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="marketRewardsHeaderFooterListener" class="au.com.optus.batch.larsuid.listener.MarketRewardsHeaderFooterListener"></bean>	
+	
+	<bean id="ctlsHeaderFooterListener" class="au.com.optus.batch.larsuid.listener.MarketRewardsCtlHeaderFooterListener"></bean>		
+	
+
+	<bean id="marketRewardCompositeResWriter" class="org.springframework.batch.item.support.CompositeItemWriter" scope="step">
+		<property name="delegates">
+			<list>
+ 				<ref bean="marketRewardCtlWriter" />
+ 				<ref bean="marketRewardEotWriter" />
+			</list>
+		</property>
+	</bean> 
+	
+	<bean id="marketRewardDeleteTasklet" class="au.com.optus.batch.larsuid.tasklets.MarketRewardsDBDeleteTasklet">
+	<property name="lastWeekCalenderDate" value="$larsuid_batch_job{market.rewards.delete.days.records}"/>
+	</bean>
+	 
+	<bean id="marketRewardItemProcessingTasklet" class="au.com.optus.batch.larsuid.tasklets.MarketRewardsItemProcessingTasklet" scope="step">
+	<property name="resFileGenerator" ref="larsResponseFileNameGenerator" />
+	</bean>
+	
+	<bean id="marketRewardIncrmtTasklet"
+		class="au.com.optus.batch.larsuid.tasklets.FileSeqIncrementTasklet">
+		<property name="controlType" value="#{T(au.com.optus.batch.larsuid.util.CONTROL_TYPE).MARK_PR_EXTRACT.toString()}"></property>
+	</bean>
+</beans>
